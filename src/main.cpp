@@ -202,13 +202,7 @@ int main() {
 	myScene.program.activate();
 
 	// Set up the view and projection matrices.
-	glm::vec3 cameraPos = glm::vec3(0, 0, 5);
-	glm::mat4 camera = glm::lookAt(cameraPos, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
-	glm::mat4 perspective = glm::perspective(glm::radians(45.0), static_cast<double>(window.getSize().x) / window.getSize().y, 0.1, 100.0);
-	myScene.program.setUniform("view", camera);
-	myScene.program.setUniform("projection", perspective);
-	myScene.program.setUniform("cameraPos", cameraPos);
-
+	
 	// Ready, set, go!
 	bool running = true;
 	sf::Clock c;
@@ -231,6 +225,15 @@ int main() {
 		auto diff = now - last;
 		std::cout << 1 / diff.asSeconds() << " FPS " << std::endl;
 		last = now;
+
+
+		glm::vec3 cameraPos = glm::vec3(0, 0, 5);
+		glm::mat4 camera = glm::lookAt(cameraPos, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+		glm::mat4 perspective = glm::perspective(glm::radians(45.0), static_cast<double>(window.getSize().x) / window.getSize().y, 0.1, 100.0);
+		myScene.program.setUniform("view", camera);
+		myScene.program.setUniform("projection", perspective);
+		myScene.program.setUniform("cameraPos", cameraPos);
+
 
 		// Update the scene.
 		for (auto& anim : myScene.animators) {

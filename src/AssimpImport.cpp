@@ -17,6 +17,7 @@ std::vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, c
 		aiString name;
 		mat->GetTexture(type, i, &name);
 		std::filesystem::path texPath = modelPath.parent_path() / name.C_Str();
+		std::cout << "loading " << texPath << std::endl;
 
 		auto existing = loadedTextures.find(texPath);
 		if (existing != loadedTextures.end()) {
@@ -50,10 +51,6 @@ Mesh3D fromAssimpMesh(const aiMesh* mesh, const aiScene* scene, const std::files
 		auto& normal = mesh->mNormals[i];
 
 		// See above.
-
-
-
-
 	}
 
 	std::vector<uint32_t> faces;
