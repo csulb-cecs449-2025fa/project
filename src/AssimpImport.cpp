@@ -6,27 +6,28 @@
 #include <filesystem>
 #include <unordered_map>
 
-const size_t FLOATS_PER_VERTEX = 3;
-const size_t VERTICES_PER_FACE = 3;
-
-std::vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, const std::string& typeName, const std::filesystem::path& modelPath,
-	std::unordered_map<std::string, Texture>& loadedTextures) {
-	std::vector<Texture> textures;
-	for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
-	{
-		aiString name;
+std::vector<Texture> loadMaterialTextures(
+	aiMaterial* mat,
+	aiTextureType type,
+	const std::string& typeName,
+	const std::filesystem::path& modelPath,
+	std::unordered_map<std::string, Texture>& loadedTextures
+) {
+	std::vector<Texture> textures{};
+	for (uint32_t i{ 0 }; i < mat->GetTextureCount(type); ++i) {
+		aiString name{};
 		mat->GetTexture(type, i, &name);
-		std::filesystem::path texPath = modelPath.parent_path() / name.C_Str();
+		std::filesystem::path texPath{ modelPath.parent_path() / name.C_Str() };
 		std::cout << "loading " << texPath << std::endl;
 
-		auto existing = loadedTextures.find(texPath.string());
+		auto existing{ loadedTextures.find(texPath.string()) };
 		if (existing != loadedTextures.end()) {
 			textures.push_back(existing->second);
 		}
 		else {
-			StbImage image;
+			StbImage image{};
 			image.loadFromFile(texPath.string());
-			Texture tex = Texture::loadImage(image, typeName);
+			Texture tex{ Texture::loadImage(image, typeName) };
 			textures.push_back(tex);
 			loadedTextures.insert(std::make_pair(texPath.string(), tex));
 		}
@@ -34,113 +35,113 @@ std::vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, c
 	return textures;
 }
 
-Mesh3D fromAssimpMesh(const aiMesh* mesh, const aiScene* scene, const std::filesystem::path& modelPath,
+Mesh fromAssimpMesh(const aiMesh* mesh, const aiScene* scene, const std::filesystem::path& modelPath,
 	std::unordered_map<std::string, Texture>& loadedTextures) {
 	std::vector<Vertex3D> vertices;
 
-	// TODO: fill in this vertices list, by iterating over each element of 
-	// the mVertices field of the aiMesh pointer. Each element of mVertices
-	// has x, y, and z values that you can use to construct a Vertex3D object.
-	// To find the u and v texture coordinates of a vertex, access the 
-	// x and y fields of each element of mTextureCoords.
-	// To find the normal vector of a vertex, access the x, y, and z fields
-	// of each eleemnt of mNormals.
-	for (size_t i = 0; i < mesh->mNumVertices; i++) {
-		auto& meshVertex = mesh->mVertices[i];
-		auto& texCoord = mesh->mTextureCoords[0][i];
-		auto& normal = mesh->mNormals[i];
+	for (size_t i{ 0 }; i < mesh->mNumVertices; i++) {
+		auto& meshVertex{ mesh->mVertices[i] };
+		auto& normal{ mesh->mNormals[i] };
+		auto& texCoord{ mesh->mTextureCoords[0][i] };
 
-		// See above.
+		// TODO: construct a Vertex3D object using this assimp node's data, referenced
+		// with the variables above. A Vertex3D is constructed with a position x/y/z, normal x/y/z, 
+		// and texture u/v (x/y), in that order.
+		// Then push_back the Vertex3D into the vertice list.
+	
+
+
 	}
 
 	std::vector<uint32_t> faces;
-	// TODO: fill in the faces list, by iterating over each element of
-	// the mFaces field of the aiMesh pointer. Each element of mFaces
-	// has an mIndices list, which will have three elements of its own at 
-	// [0], [1], and [2]. Each of those should be pushed individually onto 
-	// the faces list.
-	for (size_t i = 0; i < mesh->mNumFaces; i++) {
-		auto& meshFace = mesh->mFaces[i];
-		// See above.
-
-
-
+	for (size_t i{ 0 }; i < mesh->mNumFaces; ++i) {
+		auto& meshFace{ mesh->mFaces[i] };
+		faces.push_back(meshFace.mIndices[0]);
+		faces.push_back(meshFace.mIndices[1]);
+		faces.push_back(meshFace.mIndices[2]);
 	}
 
 	// Load any base textures, specular maps, and normal maps associated with the mesh.
-	std::vector<Texture> textures = {};
-	if (mesh->mMaterialIndex >= 0)
-	{
+	std::vector<Texture> textures{};
+	if (mesh->mMaterialIndex >= 0) {
 		aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-		std::vector<Texture> diffuseMaps = loadMaterialTextures(material,
-			aiTextureType_DIFFUSE, "baseTexture", modelPath, loadedTextures);
+		std::vector<Texture> diffuseMaps{
+			loadMaterialTextures(material, aiTextureType_DIFFUSE, "baseTexture", modelPath, loadedTextures)
+		};
 		textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
-		std::vector<Texture> specularMaps = loadMaterialTextures(material,
-			aiTextureType_SPECULAR, "specMap", modelPath, loadedTextures);
+
+		std::vector<Texture> specularMaps{
+			loadMaterialTextures(material, aiTextureType_SPECULAR, "specMap", modelPath, loadedTextures)
+		};
 		textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
-		std::vector<Texture> normalMaps = loadMaterialTextures(material,
-			aiTextureType_HEIGHT, "normalMap", modelPath, loadedTextures);
+
+		std::vector<Texture> normalMaps{
+			loadMaterialTextures(material, aiTextureType_HEIGHT, "normalMap", modelPath, loadedTextures)
+		};
 		textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
-		normalMaps = loadMaterialTextures(material,
-			aiTextureType_NORMALS, "normalMap", modelPath, loadedTextures);
+
+		normalMaps = loadMaterialTextures(material, aiTextureType_NORMALS, "normalMap", modelPath, loadedTextures);
 		textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
 	}
 
-	return Mesh3D(std::move(vertices), std::move(faces), std::move(textures));
+	return Mesh{ vertices, faces, std::move(textures) };
 }
 
-
-
 Object3D assimpLoad(const std::string& path, bool flipTextureCoords) {
-	Assimp::Importer importer;
+	Assimp::Importer importer{};
 
-	auto options = aiProcessPreset_TargetRealtime_MaxQuality;
+	auto options{ aiProcessPreset_TargetRealtime_MaxQuality };
 	if (flipTextureCoords) {
 		options |= aiProcess_FlipUVs;
 	}
-	const aiScene* scene = importer.ReadFile(path, options);
+	const aiScene* scene{ importer.ReadFile(path, options) };
 
 	// If the import failed, report it
 	if (nullptr == scene) {
-		auto* error = importer.GetErrorString();
-		std::cerr << "Error loading assimp file: " + std::string(error) << std::endl;
-		throw std::runtime_error("Error loading assimp file: " + std::string(error));
-
+		std::string error{ importer.GetErrorString() };
+		std::cerr << "Error loading assimp file: " + error << std::endl;
+		throw std::runtime_error("Error loading assimp file: " + error);
 	}
-	else {
-
-	}
-	std::vector<Mesh3D> meshes;
-	std::unordered_map<std::string, Texture> loadedTextures;
-	auto ret = processAssimpNode(scene->mRootNode, scene, std::filesystem::path(path), loadedTextures);
-	return ret;
+	std::vector<Mesh> meshes{};
+	std::unordered_map<std::string, Texture> loadedTextures{};
+	return processAssimpNode(scene->mRootNode, scene, std::filesystem::path{ path }, loadedTextures);
 }
 
-Object3D processAssimpNode(aiNode* node, const aiScene* scene,
+// A "Node" in assimp is an Object3D in our framework. It has one or more meshes,
+// plus zero or more children.
+Object3D processAssimpNode(
+	const aiNode* node, 
+	const aiScene* scene,
 	const std::filesystem::path& modelPath,
-	std::unordered_map<std::string, Texture>& loadedTextures) {
-
+	std::unordered_map<std::string, Texture>& loadedTextures
+) {
 	// Load the aiNode's meshes.
-	std::vector<Mesh3D> meshes;
-	for (auto i = 0; i < node->mNumMeshes; i++) {
-		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+	std::vector<Mesh> meshes{};
+	for (size_t i{ 0 }; i < node->mNumMeshes; ++i) {
+		aiMesh* mesh{ scene->mMeshes[node->mMeshes[i]] };
 		meshes.emplace_back(fromAssimpMesh(mesh, scene, modelPath, loadedTextures));
 	}
 
-	std::vector<Texture> textures;
+	// Load the node's textures.
+	std::vector<Texture> textures{};
 	for (auto& p : loadedTextures) {
 		textures.push_back(p.second);
 	}
-	glm::mat4 baseTransform;
-	for (auto i = 0; i < 4; i++) {
-		for (auto j = 0; j < 4; j++) {
+
+	// Initialize the base transform of the object. (Needs to be transposed from assimp.)
+	glm::mat4 baseTransform{};
+	for (uint32_t i{ 0 }; i < 4; ++i) {
+		for (uint32_t j{ 0 }; j < 4; ++j) {
 			baseTransform[i][j] = node->mTransformation[j][i];
 		}
 	}
-	auto parent = Object3D(std::move(meshes), baseTransform);
 
-	for (auto i = 0; i < node->mNumChildren; i++) {
-		Object3D child = processAssimpNode(node->mChildren[i], scene, modelPath, loadedTextures);
+	// Initialize the object.
+	Object3D parent{ std::move(meshes), std::move(baseTransform)};
+
+	// Recursively process the children of the node and add them as child objects.
+	for (size_t i{ 0 }; i < node->mNumChildren; ++i) {
+		Object3D child{ processAssimpNode(node->mChildren[i], scene, modelPath, loadedTextures) };
 		parent.addChild(std::move(child));
 	}
 

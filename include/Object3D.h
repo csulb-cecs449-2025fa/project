@@ -1,27 +1,34 @@
 #pragma once
 #include <memory>
 #include "ShaderProgram.h"
-#include "Mesh3D.h"
+#include "Mesh.h"
 class Object3D {
 private:
 	// The object's list of meshes and children.
-	std::vector<Mesh3D> m_meshes;
-	std::vector<Object3D> m_children;
+
+	// An object might have many Meshes, all drawn with the same model matrix...
+	std::vector<Mesh> m_meshes{};
+	// ... and it also might have many child Object, that have their own model matrix that is 
+	// relative to their parent.
+	std::vector<Object3D> m_children{};
 
 	// The object's position, orientation, and scale in world space.
-	glm::vec3 m_position;
-	glm::vec3 m_orientation;
-	glm::vec3 m_scale;
-	glm::vec3 m_center;
+	glm::vec3 m_position{};
+	glm::vec3 m_orientation{};
+	glm::vec3 m_scale{1.0, 1.0, 1.0};
+	// The object's center of rotation, if we want to rotate around some other point
+	// than the local space origin.
+	glm::vec3 m_center{};
 
-	// The object's material.
-	glm::vec4 m_material;
+	// The object's material parameters (ambient, diffuse, specular, shininess).
+	glm::vec4 m_material{0.1, 1.0, 0.3, 4};
 
-	// The object's base transformation matrix.
-	glm::mat4 m_baseTransform;
+	// The object's base transformation matrix, which is used by some model formats to set a "starting" 
+	// transformation for this object relative to its parent.
+	glm::mat4 m_baseTransform{};
 
 	// Some objects from Assimp imports have a "name" field, useful for debugging.
-	std::string m_name;
+	std::string m_name{};
 
 	// Recomputes the local->world transformation matrix.
 	glm::mat4 buildModelMatrix() const;
@@ -31,8 +38,8 @@ public:
 	// No default constructor; you must have a mesh to initialize an object.
 	Object3D() = delete;
 
-	Object3D(std::vector<Mesh3D>&& meshes);
-	Object3D(std::vector<Mesh3D>&& meshes, const glm::mat4& baseTransform);
+	Object3D(std::vector<Mesh> meshes);
+	Object3D(std::vector<Mesh> meshes, glm::mat4 baseTransform);
 
 	// Simple accessors.
 	const glm::vec3& getPosition() const;
@@ -49,18 +56,18 @@ public:
 
 
 	// Simple mutators.
-	void setPosition(const glm::vec3& position);
-	void setOrientation(const glm::vec3& orientation);
-	void setScale(const glm::vec3& scale);
-	void setCenter(const glm::vec3& center);
-	void setName(const std::string& name);
-	void setMaterial(const glm::vec4& material);
+	void setPosition(glm::vec3 position);
+	void setOrientation(glm::vec3 orientation);
+	void setScale(glm::vec3 scale);
+	void setCenter(glm::vec3 center);
+	void setName(std::string name);
+	void setMaterial(glm::vec4 material);
 
 	// Transformations.
 	void move(const glm::vec3& offset);
 	void rotate(const glm::vec3& rotation);
 	void grow(const glm::vec3& growth);
-	void addChild(Object3D&& child);
+	void addChild(Object3D child);
 
 	// Rendering.
 	void render(ShaderProgram& shaderProgram) const;

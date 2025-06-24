@@ -12,13 +12,14 @@ endif()
 
 project ("Graphics")
 
-add_executable (Graphics "src/main.cpp"  "include/AssimpImport.h" "include/Mesh3D.h" "include/Object3D.h" "include/ShaderProgram.h"  "src/Mesh3D.cpp" "src/Object3D.cpp" "src/ShaderProgram.cpp" "include/Texture.h"  "include/StbImage.h" "include/stb_image.h" "include/Animation.h" "include/Animator.h" "include/RotationAnimation.h" "src/Animator.cpp" "src/AssimpImport.cpp" "src/StbImage.cpp")
+add_executable (Graphics "src/main.cpp"  "include/AssimpImport.h" "include/Mesh.h" "include/Object3D.h" "include/ShaderProgram.h"  "src/Mesh.cpp"  "src/ShaderProgram.cpp" "include/Texture.h"  "include/StbImage.h" "include/stb_image.h" "include/Animation.h" "include/Animator.h" "include/RotationAnimation.h" "src/Animator.cpp" "src/AssimpImport.cpp" "src/StbImage.cpp" "src/Object3D.cpp")
+
 
 
 # Find and link external libraries, like SFML.
 # This only works if Vcpkg has been configured correctly.
-find_package(SFML COMPONENTS system window graphics CONFIG REQUIRED)
-target_link_libraries(Graphics PRIVATE sfml-system sfml-network sfml-graphics sfml-window)
+find_package(SFML COMPONENTS System Window Graphics CONFIG REQUIRED)
+target_link_libraries(Graphics PRIVATE SFML::System SFML::Window SFML::Graphics)
 
 find_package(assimp CONFIG REQUIRED)
 target_link_libraries(Graphics PRIVATE assimp::assimp)
@@ -37,13 +38,13 @@ set_target_properties(Graphics
 # instead of absolute paths.
 add_custom_target(copyshaders
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/shaders
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/shaders ${CMAKE_BINARY_DIR}/shaders
-        COMMENT "copying ${CMAKE_SOURCE_DIR}/shaders to ${CMAKE_BINARY_DIR}/shaders"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/shaders_source ${CMAKE_CURRENT_BINARY_DIR}/shaders
+        COMMENT "copying ${CMAKE_SOURCE_DIR}/shaders_source to ${CMAKE_CURRENT_BINARY_DIR}/shaders"
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 add_custom_target(copymodels
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/models
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/models ${CMAKE_BINARY_DIR}/models
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/models ${CMAKE_CURRENT_BINARY_DIR}/models
         COMMENT "copying ${CMAKE_SOURCE_DIR}/models to ${CMAKE_CURRENT_BINARY_DIR}/models"
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )

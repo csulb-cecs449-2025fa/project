@@ -1,15 +1,15 @@
-#include <iostream>
-#include "Mesh3D.h"
 #include <glad/glad.h>
+#include "Mesh.h"
 
-
-Mesh3D::Mesh3D(std::vector<Vertex3D>&& vertices, std::vector<uint32_t>&& faces,
-	Texture texture)
-	: Mesh3D(std::move(vertices), std::move(faces), std::vector<Texture>{texture}) {
+Mesh::Mesh(const std::vector<Vertex3D>& vertices, const std::vector<uint32_t>& faces)
+	: Mesh{ vertices, faces, std::vector<Texture>{} } {
 }
 
-Mesh3D::Mesh3D(std::vector<Vertex3D>&& vertices, std::vector<uint32_t>&& faces, std::vector<Texture>&& textures)
-	: m_vertexCount(vertices.size()), m_faceCount(faces.size()), m_textures(textures) {
+Mesh::Mesh(const std::vector<Vertex3D>& vertices, const std::vector<uint32_t>& faces,
+	std::vector<Texture> textures) :
+	m_vertexCount{ static_cast<uint32_t>(vertices.size()) }, 
+	m_faceCount{ static_cast<uint32_t>(faces.size()) }, 
+	m_textures{ std::move(textures) } {
 
 	// Generate a vertex array object on the GPU.
 	glGenVertexArrays(1, &m_vao);
@@ -25,18 +25,16 @@ Mesh3D::Mesh3D(std::vector<Vertex3D>&& vertices, std::vector<uint32_t>&& faces, 
 	// This vbo is now associated with m_vao.
 	// Copy the contents of the vertices list to the buffer that lives on the GPU.
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex3D), &vertices[0], GL_STATIC_DRAW);
-	// Inform OpenGL how to interpret the buffer: each vertex is 3 floats for position...
-	glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(Vertex3D), 0);
-	glEnableVertexAttribArray(0);
-
-	// Inform OpenGL how to interpret the buffer: ... then 3 floats for normal vector...
-	glVertexAttribPointer(1, 3, GL_FLOAT, false, sizeof(Vertex3D), (void*)12);
-	glEnableVertexAttribArray(1);
-
-	// Inform OpenGL how to interpret the buffer: ... the 2 floats for texture coordinate.
-	glVertexAttribPointer(2, 2, GL_FLOAT, false, sizeof(Vertex3D), (void*)24);
-	glEnableVertexAttribArray(2);
-
+	
+	
+	// TODO: use glVertexAttribPointer and glEnableVertexAttribArray to inform OpenGL about our
+	// vertex attributes. Attribute 0 is position (3 floats), 1 is normal (3 floats), and 2 is texture coords (2 floats).
+	//glVertexAttribPointer(0, ...);
+	//glEnableVertexAttribArray(0);
+	//glVertexAttribPointer(1, ...);
+	//glEnableVertexAttribArray(1);
+	//glVertexAttribPointer(2, ...);
+	//glEnableVertexAttribArray(2);
 
 	// Generate a second buffer, to store the indices of each triangle in the mesh.
 	uint32_t ebo;
@@ -48,13 +46,19 @@ Mesh3D::Mesh3D(std::vector<Vertex3D>&& vertices, std::vector<uint32_t>&& faces, 
 	glBindVertexArray(0);
 }
 
-void Mesh3D::addTexture(Texture texture) {
-	m_textures.push_back(texture);
+void Mesh::addTexture(Texture texture) {
+	m_textures.emplace_back(std::move(texture));
 }
 
-void Mesh3D::render(ShaderProgram& program) const {
+void Mesh::addTextures(std::vector<Texture> textures) {
+	for (auto& t : textures) {
+		m_textures.emplace_back(std::move(t));
+	}
+}
+
+void Mesh::render(ShaderProgram& program) const {
 	glBindVertexArray(m_vao);
-	for (auto i = 0; i < m_textures.size(); i++) {
+	for (int32_t i{ 0 }; i < m_textures.size(); ++i) {
 		program.setUniform(m_textures[i].samplerName, i);
 		glActiveTexture(GL_TEXTURE0 + i);
 		glBindTexture(GL_TEXTURE_2D, m_textures[i].textureId);
@@ -67,9 +71,8 @@ void Mesh3D::render(ShaderProgram& program) const {
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-
-Mesh3D Mesh3D::square(const std::vector<Texture>& textures) {
-	return Mesh3D(
+Mesh Mesh::square(std::vector<Texture> textures) {
+	Mesh m{
 		{
 			{ 0.5, 0.5, 0, 0, 0, 1, 1, 0 },    // TR
 			{ 0.5, -0.5, 0, 0, 0, 1, 1, 1 },   // BR
@@ -80,6 +83,7 @@ Mesh3D Mesh3D::square(const std::vector<Texture>& textures) {
 			2, 1, 3,
 			3, 1, 0,
 		},
-		std::vector<Texture>(textures)
-	);
+		std::move(textures)
+	};
+	return m;
 }
