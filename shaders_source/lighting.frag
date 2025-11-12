@@ -26,7 +26,7 @@ uniform vec3 directionalColor;
 
 
 // Location of the camera.
-uniform vec3 viewPos;
+uniform vec3 cameraPos;
 
 
 void main() {
