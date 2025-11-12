@@ -18,7 +18,7 @@ std::vector<Texture> loadMaterialTextures(
 		aiString name{};
 		mat->GetTexture(type, i, &name);
 		std::filesystem::path texPath{ modelPath.parent_path() / name.C_Str() };
-		std::cout << "loading " << texPath << std::endl;
+		std::cout << "loading " << texPath << " as " << typeName << std::endl;
 
 		auto existing{ loadedTextures.find(texPath.string()) };
 		if (existing != loadedTextures.end()) {
@@ -41,14 +41,14 @@ Mesh fromAssimpMesh(const aiMesh* mesh, const aiScene* scene, const std::filesys
 
 	for (size_t i{ 0 }; i < mesh->mNumVertices; i++) {
 		auto& meshVertex{ mesh->mVertices[i] };
-		auto& normal{ mesh->mNormals[i] };
 		auto& texCoord{ mesh->mTextureCoords[0][i] };
+		auto& normal{ mesh->mNormals[i] };
 
 		// TODO: construct a Vertex3D object using this assimp node's data, referenced
-		// with the variables above. A Vertex3D is constructed with a position x/y/z, normal x/y/z, 
-		// and texture u/v (x/y), in that order.
+		// with the variables above. A Vertex3D is constructed with a position x/y/z,  
+		// texture u/v (x/y), and normal x/y/z, in that order.
 		// Then push_back the Vertex3D into the vertice list.
-	
+
 
 
 	}
@@ -87,7 +87,7 @@ Mesh fromAssimpMesh(const aiMesh* mesh, const aiScene* scene, const std::filesys
 	return Mesh{ vertices, faces, std::move(textures) };
 }
 
-Object3D assimpLoad(const std::string& path, bool flipTextureCoords) {
+SceneObject assimpLoad(const std::string& path, bool flipTextureCoords) {
 	Assimp::Importer importer{};
 
 	auto options{ aiProcessPreset_TargetRealtime_MaxQuality };
@@ -109,7 +109,7 @@ Object3D assimpLoad(const std::string& path, bool flipTextureCoords) {
 
 // A "Node" in assimp is an Object3D in our framework. It has one or more meshes,
 // plus zero or more children.
-Object3D processAssimpNode(
+SceneObject processAssimpNode(
 	const aiNode* node, 
 	const aiScene* scene,
 	const std::filesystem::path& modelPath,
@@ -137,12 +137,14 @@ Object3D processAssimpNode(
 	}
 
 	// Initialize the object.
-	Object3D parent{ std::move(meshes), std::move(baseTransform)};
+	SceneObject parent{};
+	parent.meshes = std::move(meshes);
+	parent.baseTransform = baseTransform;
 
 	// Recursively process the children of the node and add them as child objects.
 	for (size_t i{ 0 }; i < node->mNumChildren; ++i) {
-		Object3D child{ processAssimpNode(node->mChildren[i], scene, modelPath, loadedTextures) };
-		parent.addChild(std::move(child));
+		SceneObject child{ processAssimpNode(node->mChildren[i], scene, modelPath, loadedTextures) };
+		parent.children.push_back(std::move(child));
 	}
 
 	return parent;

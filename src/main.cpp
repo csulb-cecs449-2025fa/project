@@ -12,7 +12,6 @@
 */
 #include <glad/glad.h>
 #include <iostream>
-#include <memory>
 #include <filesystem>
 #include <numbers>
 
@@ -22,8 +21,7 @@
 
 #include "AssimpImport.h"
 #include "Mesh.h"
-#include "Object3D.h"
-#include "Animator.h"
+#include "SceneObject.h"
 #include "ShaderProgram.h"
 
 #define M_PI std::numbers::pi_v<float>
@@ -32,8 +30,7 @@
 // a list of animators, and a shader program to use to render those objects.
 struct Scene {
 	ShaderProgram program{};
-	std::vector<Object3D> objects{};
-	std::vector<Animator> animators{};
+	std::vector<SceneObject> objects{};
 };
 
 /**
@@ -86,21 +83,11 @@ Scene bunny() {
 	// left corner. In that case, we have to flip the V-coordinate of each UV texture location. The last parameter
 	// to assimpLoad controls this. If you load a model and it looks very strange, try changing the last parameter.
 	auto bunny{ assimpLoad("models/bunny_textured.obj", true) };
-	bunny.grow(glm::vec3{ 9, 9, 9 });
-	bunny.move(glm::vec3{ 0.2, -1, 0 });
+	bunny.scale = glm::vec3{ 9, 9, 9 };
+	bunny.position = glm::vec3{ 0.2, -1, 0 };
 
 	// Move all objects into the scene's objects list.
 	scene.objects.push_back(std::move(bunny));
-	// Now the "bunny" variable is empty; if we want to refer to the bunny object, we need to reference 
-	// scene.objects[0]
-
-	Animator spinBunny{};
-	// Spin the bunny 360 degrees over 10 seconds.
-	spinBunny.addAnimation(std::make_unique<RotationAnimation>(scene.objects[0], 10.0f, glm::vec3{ 0, 1, 0 }));
-
-	// Move all animators into the scene's animators list.
-	scene.animators.push_back(std::move(spinBunny));
-
 	return scene;
 }
 
@@ -116,10 +103,11 @@ Scene marbleSquare() {
 		loadTexture("models/White_marble_03/Textures_2K/white_marble_03_2k_baseColor.tga", "baseTexture"),
 	};
 	auto mesh{ Mesh::square(textures) };
-	Object3D floor{ std::vector<Mesh>{mesh} };
-	floor.grow(glm::vec3{ 5, 5, 5 });
-	floor.move(glm::vec3{ 0, -1.5, 0 });
-	floor.rotate(glm::vec3{ -M_PI / 2, 0, 0 });
+	SceneObject floor;
+	floor.meshes.push_back(mesh);
+	floor.scale = glm::vec3{ 5, 5, 5 };
+	floor.position = glm::vec3{ 0, -1.5, 0 };
+	floor.orientation = glm::vec3{ -M_PI / 2, 0, 0 };
 
 	scene.objects.push_back(std::move(floor));
 	return scene;
@@ -130,18 +118,8 @@ Scene marbleSquare() {
  */
 Scene cube() {
 	Scene scene{ texturingShader() };
-
 	auto cube{ assimpLoad("models/cube.obj", true) };
-
 	scene.objects.push_back(std::move(cube));
-
-	Animator spinCube{};
-	spinCube.addAnimation(std::make_unique<RotationAnimation>(scene.objects[0], 10.0f, glm::vec3{ 0, 2 * M_PI, 0 }));
-	// Then spin around the x axis.
-	spinCube.addAnimation(std::make_unique<RotationAnimation>(scene.objects[0], 10.0f, glm::vec3{ 2 * M_PI, 0, 0 }));
-
-	scene.animators.push_back(std::move(spinCube));
-
 	return scene;
 }
 
@@ -155,30 +133,15 @@ Scene lifeOfPi() {
 	Scene scene{ texturingShader() };
 
 	auto boat{ assimpLoad("models/boat/boat.fbx", true) };
-	boat.move(glm::vec3{ 0, -0.7, 0 });
-	boat.grow(glm::vec3{ 0.01, 0.01, 0.01 });
+	boat.position = glm::vec3{ 0, -0.7, 0 };
+	boat.scale = glm::vec3{ 0.01, 0.01, 0.01 };
+	
 	auto tiger{ assimpLoad("models/tiger/scene.gltf", true) };
-	tiger.move(glm::vec3{ 0, -5, 10 });
-	// Move the tiger to be a child of the boat.
-	boat.addChild(std::move(tiger));
+	boat.children.push_back(std::move(tiger));
 
 	// Move the boat into the scene list.
 	scene.objects.push_back(std::move(boat));
-
-	// We want these animations to referenced the *moved* objects, which are no longer
-	// in the variables named "tiger" and "boat". "boat" is now in the "objects" list at
-	// index 0, and "tiger" is the index-1 child of the boat.
-	Animator animBoat{};
-	animBoat.addAnimation(std::make_unique<RotationAnimation>(scene.objects[0], 10.0f, glm::vec3{ 0, 2 * M_PI, 0 }));
-	Animator animTiger{};
-	animTiger.addAnimation(std::make_unique<RotationAnimation>(scene.objects[0].getChild(1), 10.0f, glm::vec3{ 0, 0, 2 * M_PI }));
-
-	// The Animators will be destroyed when leaving this function, so we move them into
-	// a list to be returned.
-	scene.animators.push_back(std::move(animBoat));
-	scene.animators.push_back(std::move(animTiger));
-
-	// Transfer ownership of the objects and animators back to the main.
+	//scene.objects.push_back(std::move(tiger));
 	return scene;
 }
 
@@ -205,17 +168,12 @@ int main() {
 	glEnable(GL_DEPTH_TEST);
 
 	// Inintialize scene objects.
-	auto myScene{ bunny() };
+	auto myScene{ lifeOfPi() };
 	// You can directly access specific objects in the scene using references.
 	auto& firstObject{ myScene.objects[0] };
 
 	// Activate the shader program.
 	myScene.program.activate();
-
-	// Start the animators.
-	for (auto& anim : myScene.animators) {
-		anim.start();
-	}
 
 	// Ready, set, go!
 	bool running{ true };
@@ -245,16 +203,15 @@ int main() {
 		myScene.program.setUniform("projection", perspective);
 		myScene.program.setUniform("cameraPos", cameraPos);
 
-		// Update the scene.
-		for (auto& anim : myScene.animators) {
-			anim.tick(diff.asSeconds());
-		}
-
+		// Rotate the boat and the tiger.
+		firstObject.orientation.y += 0.001;
+		firstObject.children[1].orientation.z += 0.001;
+		
 		// Clear the OpenGL "context".
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		// Render the scene objects.
 		for (auto& o : myScene.objects) {
-			o.render(myScene.program);
+			o.drawObject(myScene.program);
 		}
 		window.display();
 	}
