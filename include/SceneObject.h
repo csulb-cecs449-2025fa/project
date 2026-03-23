@@ -33,7 +33,7 @@ public:
 
 	// The object's base transformation matrix, which is used by some model formats to set a "starting" 
 	// transformation for this object relative to its parent.
-	glm::mat4 baseTransform{};
+	glm::mat4 baseTransform{1};
 
 	// Some objects from Assimp imports have a "name" field, useful for debugging.
 	std::string name{};
